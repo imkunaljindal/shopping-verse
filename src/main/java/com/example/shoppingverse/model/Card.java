@@ -2,10 +2,7 @@ package com.example.shoppingverse.model;
 
 import com.example.shoppingverse.Enum.CardType;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.FieldDefaults;
 
 import java.util.Date;
@@ -16,6 +13,7 @@ import java.util.Date;
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Table(name="card")
+@Builder
 public class Card {
 
     @Id
@@ -29,6 +27,7 @@ public class Card {
 
     Date validTill;
 
+    @Enumerated(EnumType.STRING)
     CardType cardType;
 
     @ManyToOne

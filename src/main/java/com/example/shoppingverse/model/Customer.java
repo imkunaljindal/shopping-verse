@@ -13,6 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@Builder
 @Table(name="customer")
 public class Customer {
 
@@ -28,6 +29,7 @@ public class Customer {
     @Column(unique = true)
     String mobNo;
 
+    @Enumerated(EnumType.STRING)
     Gender gender;
 
     @OneToOne(mappedBy = "customer",cascade = CascadeType.ALL)
