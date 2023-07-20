@@ -24,6 +24,7 @@ public class ProductService {
     SellerRepository sellerRepository;
     @Autowired
     private ProductRepository productRepository;
+
     @Autowired
     private CustomerRepository customerRepository;
 
