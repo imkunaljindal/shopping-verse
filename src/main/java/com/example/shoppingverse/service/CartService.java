@@ -1,18 +1,21 @@
 package com.example.shoppingverse.service;
 
+import com.example.shoppingverse.dto.request.CheckoutCartRequestDto;
 import com.example.shoppingverse.dto.request.ItemRequestDto;
 import com.example.shoppingverse.dto.response.CartResponseDto;
-import com.example.shoppingverse.model.Cart;
-import com.example.shoppingverse.model.Customer;
-import com.example.shoppingverse.model.Item;
-import com.example.shoppingverse.model.Product;
-import com.example.shoppingverse.repository.CartRepository;
-import com.example.shoppingverse.repository.CustomerRepository;
-import com.example.shoppingverse.repository.ItemRepository;
-import com.example.shoppingverse.repository.ProductRepository;
+import com.example.shoppingverse.dto.response.OrderResponseDto;
+import com.example.shoppingverse.exception.CustomerNotFoundException;
+import com.example.shoppingverse.exception.EmptyCartException;
+import com.example.shoppingverse.exception.InvalidCardException;
+import com.example.shoppingverse.model.*;
+import com.example.shoppingverse.repository.*;
 import com.example.shoppingverse.transformer.CartTransformer;
+import com.example.shoppingverse.transformer.OrderTransformer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.Date;
 
 @Service
 public class CartService {
@@ -24,9 +27,17 @@ public class CartService {
     ItemRepository itemRepository;
 
     @Autowired
+    CardRespository cardRespository;
+
+    @Autowired
     CartRepository cartRepository;
     @Autowired
-    private ProductRepository productRepository;
+    ProductRepository productRepository;
+
+    @Autowired
+    OrderService orderService;
+    @Autowired
+    private OrderEntityRepository orderEntityRepository;
 
     public CartResponseDto addItemToCart(ItemRequestDto itemRequestDto,Item item) {
 
@@ -47,6 +58,43 @@ public class CartService {
 
         //prepare cartResponse Dto
         return CartTransformer.CartToCartReponseDto(savedCart);
+
+    }
+
+    public OrderResponseDto checkoutCart(CheckoutCartRequestDto checkoutCartRequestDto) {
+
+        Customer customer = customerRepository.findByEmailId(checkoutCartRequestDto.getCustomerEmail());
+        if(customer==null){
+            throw new CustomerNotFoundException("Customer doesn't exist");
+        }
+
+        Card card = cardRespository.findByCardNo(checkoutCartRequestDto.getCardNo());
+        Date currentDate = new Date();
+        if(card==null || card.getCvv()!= checkoutCartRequestDto.getCvv() || currentDate.after(card.getValidTill())){
+            throw new InvalidCardException("Card is not valid");
+        }
+
+        Cart cart = customer.getCart();
+        if(cart.getItems().size()==0){
+            throw new EmptyCartException("Sorry! The cart is empty");
+        }
+
+        OrderEntity order = orderService.placeOrder(cart,card);
+        resetCart(cart);
+
+        OrderEntity savedOrder = orderEntityRepository.save(order);
+
+        // prepare response dto
+        return OrderTransformer.OrderToOrderResponseDto(savedOrder);
+    }
+
+    public void resetCart(Cart cart){
+
+        cart.setCartTotal(0);
+        for(Item item: cart.getItems()){
+            item.setCart(null);
+        }
+        cart.setItems(new ArrayList<>());
 
     }
 }

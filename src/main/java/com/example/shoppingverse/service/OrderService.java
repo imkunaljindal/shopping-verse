@@ -14,6 +14,7 @@ import com.example.shoppingverse.transformer.OrderTransformer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,6 +38,8 @@ public class OrderService {
     CardService cardService;
     @Autowired
     private ItemRepository itemRepository;
+    @Autowired
+    private CartRepository cartRepository;
 
     public OrderResponseDto placeOrder(OrderRequestDto orderRequestDto) {
 
@@ -77,18 +80,49 @@ public class OrderService {
         item.setOrderEntity(orderEntity);
         item.setProduct(product);
 
+        orderEntity.setCustomer(customer);
         orderEntity.getItems().add(item);
 
         OrderEntity savedOrder = orderEntityRepository.save(orderEntity);  // save order and item
-        orderEntity.setCustomer(customer);
 
         product.getItems().add(savedOrder.getItems().get(0));
         customer.getOrders().add(savedOrder);
 
-        productRepository.save(product);
-        customerRepository.save(customer);
+//        productRepository.save(product);
+//        customerRepository.save(customer);
 
         // preapre response Dto
         return OrderTransformer.OrderToOrderResponseDto(savedOrder);
+    }
+
+    public OrderEntity placeOrder(Cart cart, Card card) {
+
+        OrderEntity order = new OrderEntity();
+        order.setOrderId(String.valueOf(UUID.randomUUID()));
+        order.setCardUsed(cardService.generateMaskedCard(card.getCardNo()));
+
+        int orderTotal = 0;
+        for(Item item: cart.getItems()){
+
+            Product product = item.getProduct();
+            if(product.getAvailableQuantity() < item.getRequiredQuantity()){
+                throw new InsufficientQuantityException("Sorry! Insufficient quatity available for: "+product.getProductName());
+            }
+
+            int newQuantity = product.getAvailableQuantity() - item.getRequiredQuantity();
+            product.setAvailableQuantity(newQuantity);
+            if(newQuantity==0){
+                product.setProductStatus(ProductStatus.OUT_OF_STOCK);
+            }
+
+            orderTotal += product.getPrice()*item.getRequiredQuantity();
+            item.setOrderEntity(order);
+        }
+
+        order.setOrderTotal(orderTotal);
+        order.setItems(cart.getItems());
+        order.setCustomer(card.getCustomer());
+
+        return order;
     }
 }

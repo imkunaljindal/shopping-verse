@@ -1,8 +1,11 @@
 package com.example.shoppingverse.controller;
 
+import com.example.shoppingverse.dto.request.CheckoutCartRequestDto;
 import com.example.shoppingverse.dto.request.ItemRequestDto;
 import com.example.shoppingverse.dto.response.CartResponseDto;
+import com.example.shoppingverse.dto.response.OrderResponseDto;
 import com.example.shoppingverse.model.Item;
+import com.example.shoppingverse.repository.CartRepository;
 import com.example.shoppingverse.service.CartService;
 import com.example.shoppingverse.service.ItemService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +27,9 @@ public class CartController {
     @Autowired
     CartService cartService;
 
+    @Autowired
+    CartRepository cartRepository;
+
     @PostMapping("/add")
     public ResponseEntity addToCart(@RequestBody ItemRequestDto itemRequestDto){
 
@@ -34,6 +40,18 @@ public class CartController {
         }
         catch (Exception e){
             return new ResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @PostMapping("/checkout")
+    public ResponseEntity checkoutCart(@RequestBody CheckoutCartRequestDto checkoutCartRequestDto){
+
+        try{
+          OrderResponseDto response = cartService.checkoutCart(checkoutCartRequestDto);
+          return new ResponseEntity(response,HttpStatus.CREATED);
+        }
+        catch (Exception e){
+            return new ResponseEntity(e.getMessage(),HttpStatus.BAD_REQUEST);
         }
     }
 }
