@@ -12,6 +12,8 @@ import com.example.shoppingverse.repository.*;
 import com.example.shoppingverse.transformer.ItemTransformer;
 import com.example.shoppingverse.transformer.OrderTransformer;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -33,6 +35,9 @@ public class OrderService {
 
     @Autowired
     OrderEntityRepository orderEntityRepository;
+
+    @Autowired
+    JavaMailSender javaMailSender;
 
     @Autowired
     CardService cardService;
@@ -88,10 +93,9 @@ public class OrderService {
         product.getItems().add(savedOrder.getItems().get(0));
         customer.getOrders().add(savedOrder);
 
-//        productRepository.save(product);
-//        customerRepository.save(customer);
+        // send email
+        sendEmail(savedOrder);
 
-        // preapre response Dto
         return OrderTransformer.OrderToOrderResponseDto(savedOrder);
     }
 
@@ -124,5 +128,22 @@ public class OrderService {
         order.setCustomer(card.getCustomer());
 
         return order;
+    }
+
+    public void sendEmail(OrderEntity order){
+
+        String text = "Congrats! Your order has been placed. Following are the details: '\n' " +
+                "Order id = "+ order.getOrderId() + "\n"
+                + "Order total = " + order.getOrderTotal()
+                + "Order Date = " + order.getOrderDate();
+
+
+        SimpleMailMessage mail = new SimpleMailMessage();
+        mail.setTo(order.getCustomer().getEmailId());
+        mail.setFrom("acciojobspring@gmail.com");
+        mail.setSubject("Order Placed");
+        mail.setText(text);
+
+        javaMailSender.send(mail);
     }
 }
